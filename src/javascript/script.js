@@ -32,7 +32,6 @@ if (!apiKey) {
     alert("Aucune clé API saisie. Rechargez la page pour réessayer.");
   }
 }
-console.log("Clé API chargée :", apiKey);
 
 const options = {
   method: 'GET',
@@ -46,13 +45,13 @@ const options = {
 function editURL(filterValue, queryText) {
   switch (filterValue) {
     case 'title':
-      url = 'https://anime-db.p.rapidapi.com/anime?page=1&size=20&search=' + queryText.trim() + '&sortBy=ranking&sortOrder=asc';
+      url = 'https://anime-db.p.rapidapi.com/anime?page=1&size=20&search=' + encodeURIComponent(queryText.trim()) + '&sortBy=ranking&sortOrder=asc';
       break;
     case 'id':
       url = 'https://anime-db.p.rapidapi.com/anime/by-id/' + parseInt(queryText, 10);
       break;
     case 'rank':
-      url = 'https://anime-db.p.rapidapi.com/anime/by-ranking/' + queryText;
+      url = 'https://anime-db.p.rapidapi.com/anime/by-ranking/' + encodeURIComponent(queryText.trim());
       break;
     default:
       url = 'https://anime-db.p.rapidapi.com/anime?page=1&size=20';

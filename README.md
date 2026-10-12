@@ -88,7 +88,10 @@ Les résultats s'afficheront sous forme de cartes contenant :
 Anime_Requester/
 ├── index.html          # Page HTML principale
 ├── assets/
-│   ├── background_2.png # Image d'arrière-plan
+│   ├── back.jpg        # Image d'arrière-plan
+│   ├── backMobile.png  # Image d'arrière-plan sur mobile
+│   ├── moon.png        # Icône lune (non utilisée)
+│   ├── sun.png         # Icône soleil (non utilisée)
 │   └── tabLogo.png     # Icône de l'onglet
 ├── src/
 │   ├── css/
@@ -117,5 +120,14 @@ Aucune installation requise ! Il suffit de :
 - Mohamed
 - Milo
 - Lylian
+
+## 🙋 Mon rôle
+
+Projet réalisé à trois en BUT Informatique ; ce dépôt est mon fork personnel. Je me suis occupé de la partie API :
+
+- construction des URL de requête selon le filtre choisi
+- recherche par identifiant, par classement et par nom
+- filtrage des résultats par genre
+- saisie de la clé API par l'utilisateur et stockage en `sessionStorage`
 
 **Amusez-vous bien !**
