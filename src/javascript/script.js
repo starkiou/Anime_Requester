@@ -84,9 +84,17 @@ function getSelectedGenres() {
 
 // === CHARGER LES GENRES (1 seule fois) ===
 async function loadGenres() {
-  let genres = JSON.parse(localStorage.getItem("animeGenres"));
+  let genres = null;
+  try {
+    genres = JSON.parse(localStorage.getItem("animeGenres"));
+  } catch (error) {
+    // valeur illisible en cache : on la recharge
+  }
 
-  if (!genres) {
+  // Seule une vraie liste est gardée : une réponse d'erreur de l'API mise en
+  // cache (clé absente ou refusée) laissait la zone des genres vide pour toujours.
+  if (!Array.isArray(genres) || genres.length === 0) {
+    genres = [];
     try {
       const genreUrl = 'https://anime-db.p.rapidapi.com/genre';
       const genreOptions = {
@@ -98,7 +106,11 @@ async function loadGenres() {
       };
 
       const response = await fetch(genreUrl, genreOptions);
-      genres = await response.json();
+      const data = await response.json();
+      if (!response.ok || !Array.isArray(data)) {
+        throw new Error(`réponse inattendue de l'API (${response.status})`);
+      }
+      genres = data;
       localStorage.setItem("animeGenres", JSON.stringify(genres));
       console.log("Genres chargés depuis l'API");
     } catch (error) {
@@ -112,68 +124,116 @@ async function loadGenres() {
 }
 
 // === AJOUTER LES GENRES DANS LE SELECT MULTIPLE ===
+// Genres réservés aux adultes renvoyés par l'API : ils ne sont pas proposés
+const HIDDEN_GENRES = ["Hentai", "Erotica", "Ecchi"];
+
 function GenreSelect(genres) {
   const container = document.getElementById("genreCheckboxes");
   container.innerHTML = "";
 
-  genres.forEach(g => {
+  const names = genres
+    .map(g => g._id)
+    .filter(name => name && !HIDDEN_GENRES.includes(name))
+    .sort((a, b) => a.localeCompare(b));
+
+  names.forEach(name => {
+    // Une étiquette cliquable par genre ; la case à cocher reste dans la page
+    // pour le clavier et les lecteurs d'écran, mais elle est masquée visuellement.
     const label = document.createElement("label");
-    label.style.display = "block";
+    label.className = "genre-chip";
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    checkbox.value = g._id;
+    checkbox.value = name;
+    // Cocher ou décocher un genre filtre aussitôt les résultats déjà affichés
+    checkbox.addEventListener("change", renderResults);
 
     label.appendChild(checkbox);
-    label.append(" " + g._id);
+    label.append(name);
     container.appendChild(label);
   });
 }
 
 // === FETCH DES ANIMES AVEC FILTRE GENRES MULTIPLES ===
+// Résultats de la dernière recherche, avant filtrage par genre. `null` tant
+// qu'aucune recherche n'a été lancée.
+let lastAnimeList = null;
+
+function showMessage(text) {
+  const container = document.getElementById("cardZone");
+  const message = document.createElement("p");
+  message.className = "search-message";
+  message.textContent = text;
+  container.appendChild(message);
+}
+
+function clearResults() {
+  const container = document.getElementById("cardZone");
+  Array.from(container.children).forEach(child => {
+    if (child.tagName.toLowerCase() !== 'template') {
+      child.remove();
+    }
+  });
+}
+
+// === AFFICHER LES RÉSULTATS, FILTRÉS PAR LES GENRES COCHÉS ===
+function renderResults() {
+  if (lastAnimeList === null) return;
+
+  const container = document.getElementById("cardZone");
+  const template = document.getElementById("cardTemplate");
+  const selectedGenres = getSelectedGenres();
+  clearResults();
+
+  if (lastAnimeList.length === 0) {
+    showMessage("Aucun anime trouvé pour cette recherche.");
+    return;
+  }
+
+  const filtered = selectedGenres.length > 0
+    ? lastAnimeList.filter(anime =>
+        anime.genres && selectedGenres.every(genre => anime.genres.includes(genre)))
+    : lastAnimeList;
+
+  if (filtered.length === 0) {
+    showMessage("Aucun résultat ne correspond à tous les genres cochés.");
+    return;
+  }
+
+  filtered.forEach(anime => {
+    renderCard(anime, template, container);
+  });
+}
+
+// === FETCH DES ANIMES ===
 async function fetchAnime(filterValue, queryText) {
   try {
-    const container = document.getElementById("cardZone");
-    const template = document.getElementById("cardTemplate");
-    const selectedGenres = getSelectedGenres();
-
-    Array.from(container.children).forEach(child => {
-      if (child.tagName.toLowerCase() !== 'template') {
-        child.remove();
-      }
-    });
-
+    clearResults();
     editURL(filterValue, queryText);
 
     const response = await fetch(url, options);
+    if (!response.ok) {
+      lastAnimeList = null;
+      showMessage(response.status === 401 || response.status === 403
+        ? "La clé API a été refusée. Rechargez la page pour en saisir une autre."
+        : `La recherche a échoué (erreur ${response.status}).`);
+      return;
+    }
     const jsonData = await response.json();
 
-    let animeList = [];
-
     if (jsonData.data && Array.isArray(jsonData.data)) {
-      animeList = jsonData.data;
+      lastAnimeList = jsonData.data;
     } else if (jsonData && typeof jsonData === 'object' && jsonData.title) {
-      animeList = [jsonData];
-    }
-
-    if (selectedGenres.length > 0) {
-      animeList = animeList.filter(anime =>
-        anime.genres && selectedGenres.every(genre => anime.genres.includes(genre))
-      );
-    }
-
-    if (animeList.length > 0) {
-      animeList.forEach(anime => {
-        renderCard(anime, template, container);
-      });
+      lastAnimeList = [jsonData];
     } else {
-      const message = document.createElement("p");
-      message.textContent = "Aucun anime trouvé pour cette recherche.";
-      container.appendChild(message);
+      lastAnimeList = [];
     }
 
+    renderResults();
   } catch (error) {
     console.error("Erreur lors du fetch :", error);
+    clearResults();
+    showMessage("La recherche a échoué : impossible de joindre l'API.");
   }
 }
 
