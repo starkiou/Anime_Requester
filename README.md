@@ -2,9 +2,23 @@
 
 Un outil de recherche d'anime développé en HTML5, CSS et JavaScript vanilla. Trouvez vos animes préférés facilement !
 
+## 📸 Aperçu
+
+Recherche par nom, filtrée par genres :
+
+![Recherche filtrée par genres](docs/recherche.jpg)
+
+<details>
+<summary>Thème sombre</summary>
+
+![Thème sombre](docs/theme-sombre.jpg)
+
+</details>
+
 ## ✨ Fonctionnalités
 
-- 🔍 Recherche d'animes par nom, identifiant, classement ou genre
+- 🔍 Recherche d'animes par nom, identifiant ou classement
+- 🏷️ Filtrage par genres : cocher une étiquette filtre aussitôt les résultats affichés
 - 🎯 Interface simple et intuitive
 - 📱 Design responsive pour tous les appareils
 - 🖼️ Arrière-plan personnalisé
